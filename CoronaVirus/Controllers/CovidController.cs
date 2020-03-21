@@ -31,8 +31,9 @@ namespace CoronaVirus.Controllers
         }
 
 
-        async Task<List<Covid>> GetCovidstatAsync(string country)
+        async Task<List<CovidISO>> GetCovidstatAsync(string country)
         { 
+
 
             List<Covid> CovidStats = new List<Covid>();
             var client = new RestClient("https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats?country=" + country);
@@ -59,7 +60,9 @@ namespace CoronaVirus.Controllers
             CovidStats = JsonSerializer.Deserialize<List<Covid>>(covid.ToString(), default);
             _logger.LogInformation("Got json from API "+Task.CurrentId);
 
-            return CovidStats;
+            var covidISO = CombineIsoCountry(CovidStats, await GetISO(country));
+
+            return covidISO;
             // The return statement specifies an  List<Covid> result.
             // Any methods that are awaiting GetCovidstatAsync retrieve the  List<Covid> objects.
         }
@@ -84,7 +87,10 @@ namespace CoronaVirus.Controllers
 
             covids.ForEach(c=> {
                 countries.ForEach(s => {
-                    covISO.Add(new CovidISO(c, s.id, s.longitude, s.latitude));
+                    if (c.country == s.name)
+                    {
+                        covISO.Add(new CovidISO(c, s.id, s.longitude, s.latitude));
+                    }
                 });
             });
             
