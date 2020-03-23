@@ -14,7 +14,18 @@ using Newtonsoft.Json.Linq;
 
 namespace CoronaVirus.Controllers
 {
+    public class InitialComparator : IEqualityComparer<string>
+    {
+        public bool Equals(string x, string y)
+        {
+            return x.Contains(y);
+        }
 
+        public int GetHashCode(string obj)
+        {
+            return obj[0].GetHashCode();
+        }
+    }
     /* l'attributo riassume parte di quanto si può fare con una rotta tradizionale
      * routes.MapRoute("covid", "api/covid/{country}}",
             defaults: new { controller = "Data", action = "GetCovidstat" });
@@ -76,24 +87,88 @@ namespace CoronaVirus.Controllers
             
             return Json(await GetCovidstatAsync(country));
         }
-        
+
+
+
         private List<CovidISO> CombineIsoCountry(List<Covid> covids, List<Country> countries)
         {
-            
-            var filterCountries = countries.Select(c => c.name).Intersect(covids.Select(s => s.country));
-            countries=countries.Where(x => filterCountries.Contains(x.name)).ToList();
 
+            //var filterCountries = countries.Select(c => c.name).Intersect(covids.Select(s => s.country));
+            //var filterContry = countries.Join(covids, c => c.name, s => s.country, (country, covid) => new { country.name, covid.country }, new InitialComparator()).Select(c => c.name);
+            var filterCountries = from i in countries
+                       from w in covids
+                       where ((i.name.Contains(w.country) && w.province == "") )
+                       select new 
+                       {
+                          w,
+                           i.id,
+                           i.longitude,
+                           i.latitude
+                       };
+            var filterprov = from i in countries
+                                  from w in covids
+                                  where ((i.name.Contains(w.province) && w.province != ""))
+                                  select new
+                                  {
+                                      w,
+                                      i.id,
+                                      i.longitude,
+                                      i.latitude
+                                  };
+            var filterprov2 = from i in countries
+                             from w in covids
+                             where ((i.name.Contains(w.country) && w.province != ""))
+                             select new
+                             {
+                                 w,
+                                 i.id,
+                                 i.longitude,
+                                 i.latitude
+                             };
+            filterprov2 = filterprov2.GroupBy(c => c.id).Select(g => g.First());
             List<CovidISO> covISO = new List<CovidISO>();
-
-            covids.ForEach(c=> {
-                countries.ForEach(s => {
-                    if (c.country == s.name)
-                    {
-                        covISO.Add(new CovidISO(c, s.id, s.longitude, s.latitude));
-                    }
-                });
-            });
+            foreach (var t in filterCountries)
+            {
+                covISO.Add(new CovidISO(t.w, t.id, t.longitude, t.latitude));
+            }
+            foreach(var t in filterprov)
+            {
+                covISO.Add(new CovidISO(t.w, t.id, t.longitude, t.latitude));
+            }
             
+            //covids.ForEach(c=> {
+
+            //    countries.ForEach(s => {
+
+            //        if (s.name.Contains(c.country) && c.province == "" )
+            //        {
+            //            covISO.Add(new CovidISO(c, s.id, s.longitude, s.latitude));
+            //        }
+            //        if(c.province.Contains(s.name))
+            //        {
+            //            covISO.Add(new CovidISO(c, s.id, s.longitude, s.latitude));
+            //        }
+            //        if (c.country.Contains(","))
+            //        {
+            //            var state = c.country.Split(',');
+            //            if (state[0].Contains(s.name))
+            //            {
+            //                covISO.Add(new CovidISO(c, s.id, s.longitude, s.latitude));
+            //            }
+            //        }
+            //        if (c.province != "" && c.country.Contains(s.name))
+            //        {
+            //            covISO.Add(new CovidISO(c, s.id, s.longitude, s.latitude));
+            //        }
+            //        if (c.country.Trim() == s.iso2Code)
+            //        {
+            //            var us = countries.Where(co => co.iso2Code == "US").ToList();
+            //            covISO.Add(new CovidISO(c, us[0].id, us[0].longitude, us[0].latitude));
+            //        }
+            //    });
+
+            //});
+
 
             return covISO;
         }
@@ -134,9 +209,9 @@ namespace CoronaVirus.Controllers
 
 
         //sync implement
-        /*
+       
         [HttpGet]
-        [Route("{country}")]
+        [Route("stat/{country}")]
         public IActionResult Get(string country)
         {
             return Json(GetCovidstat(country));
@@ -157,7 +232,7 @@ namespace CoronaVirus.Controllers
             CovidStats = JsonSerializer.Deserialize<List<Covid>>(covid.ToString(), default);
             return CovidStats;
         }
-        */
+        
 
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

@@ -10,7 +10,7 @@
 <div id="world"></div>
         
 <script>
-    (function (namespace) {
+    var Map =(function (namespace) {
         /*var defaultOptions = {
            scope: 'world', //currently supports 'usa' and 'world', however with custom map data you can specify your own
            setProjection: setProjection, //returns a d3 path and projection functions
@@ -146,7 +146,9 @@
                     morti: state.deaths,
                     centered: state.id,
                     country: state.id,
-                    date: state.lastUpdate
+                    date: state.lastUpdate,
+                    longitude: state.longitude,
+                    latitude: state.latitude
 
                 });
             }
@@ -161,6 +163,7 @@
                 }
             });
         };
+        console.log(cases);
         namespace.cases = cases;
     }(Map || {}))
 
