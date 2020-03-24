@@ -5,73 +5,18 @@
 
 
 <div>
-    <h1>Casi di CoronaVirus - Live</h1>
+    <h1>Casi di CoronaVirus - Live <span id="count" class=""></span></h1>
 </div>
 <div id="world"></div>
         
 <script>
     var Map =(function (namespace) {
-        /*var defaultOptions = {
-           scope: 'world', //currently supports 'usa' and 'world', however with custom map data you can specify your own
-           setProjection: setProjection, //returns a d3 path and projection functions
-           projection: 'equirectangular', //style of projection to be used. try "mercator"
-           height: null, //if not null, datamaps will grab the height of 'element'
-           width: null, //if not null, datamaps will grab the width of 'element'
-           responsive: false, //if true, call `resize()` on the map object when it should adjust it's size
-           done: function () { }, //callback when the map is done drawing
-           fills: {
-               defaultFill: '#ABDDA4' //the keys in this object map to the "fillKey" of [data] or [bubbles]
-           },
-           dataType: 'json', //for use with dataUrl, currently 'json' or 'csv'. CSV should have an `id` column
-           dataUrl: null, //if not null, datamaps will attempt to fetch this based on dataType ( default: json )
-           geographyConfig: {
-               dataUrl: null, //if not null, datamaps will fetch the map JSON (currently only supports topojson)
-               hideAntarctica: true,
-               borderWidth: 1,
-               borderOpacity: 1,
-               borderColor: '#FDFDFD',
-               popupTemplate: function (geography, data) { //this function should just return a string
-                   return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong></div>';
-               },
-               popupOnHover: true, //disable the popup while hovering
-               highlightOnHover: true,
-               highlightFillColor: '#FC8D59',
-               highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
-               highlightBorderWidth: 2,
-               highlightBorderOpacity: 1
-           },
-           bubblesConfig: {
-               borderWidth: 2,
-               borderOpacity: 1,
-               borderColor: '#FFFFFF',
-               popupOnHover: true,
-               radius: null,
-               popupTemplate: function (geography, data) {
-                   return '<div class="hoverinfo"><strong>' + data.name + '</strong></div>';
-               },
-               fillOpacity: 0.75,
-               animate: true,
-               highlightOnHover: true,
-               highlightFillColor: '#FC8D59',
-               highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
-               highlightBorderWidth: 2,
-               highlightBorderOpacity: 1,
-               highlightFillOpacity: 0.85,
-               exitDelay: 100,
-               key: JSON.stringify
-           },
-           arcConfig: {
-               strokeColor: '#DD1C77',
-               strokeWidth: 1,
-               arcSharpness: 1,
-               animationSpeed: 600
-           }
-       };*/
+        
         var bombMap = new Datamap({
             element: document.getElementById('world'),
             scope: 'world',
+            
             responsive: true,
-
             geographyConfig: {
                 popupOnHover: true,
                 highlightOnHover: false
@@ -123,9 +68,11 @@
             //    fillKey: 'USA',
             //    date: '1954-03-01'
             //};
+            var count = 0;
             for (var state of response) {
                 //console.log(template);
                 var radius;
+                count += state.confirmed;
                 if (state.confirmed > 1000) {
                     radius = state.confirmed / 1000;
                 }
@@ -162,6 +109,90 @@
                         '</div>'].join('');
                 }
             });
+            $("#count").html(count)
+            $("#count").attr("class", "badge-danger badge-pill")
+
+            /*******
+     Zoom behavior
+     ********/
+            // Keep a reference to the d3 zoom behavior
+            var zoom = d3.behavior.zoom();
+            var currentZoom = null;
+
+            // Reset d3.event.translate and d3.event.scale
+            function resetZoom() {
+                zoom.scale(1);
+                zoom.translate([0, 0]);
+            }
+            var zoomInOpts = {
+                scaleFactor: 2,
+                center: {
+                    lat: 45,
+                    lng: -90
+                },
+                transition: {
+                    duration: 1000
+                },
+                onZoomComplete: function (zoomData) {
+                    currentZoom = zoomData;
+                    resetZoom();
+                }
+            };
+            var zoomOutOpts = {
+                scaleFactor: 0.5,
+                center: {
+                    lat: 40,
+                    lng: -90
+                },
+                transition: {
+                    duration: 1000
+                },
+                onZoomComplete: function (zoomData) {
+                    currentZoom = zoomData;
+                    resetZoom();
+                }
+            };
+
+            function transformStr(x, y, scale) {
+                //var translateX = d3.event.translate[0];
+                //var translateY = d3.event.translate[1];
+                //var scale = d3.event.scale;
+                return "translate(" + [x, y] + ")scale(" + scale + ")";
+            }
+
+            function redraw() {
+                var translateX = d3.event.translate[0];
+                var translateY = d3.event.translate[1];
+                var scale = d3.event.scale;
+                console.log("Scale: " + d3.event.scale);
+
+                if (currentZoom) {
+                    console.log("CurrentZoom.scale: " + currentZoom.scale);
+                    scale *= currentZoom.scale;
+                    translateX += currentZoom.translate.x
+                    translateY += currentZoom.translate.y;
+                }
+
+                bombMap.svg.selectAll("g")
+                    .attr("transform", transformStr(translateX, translateY, scale))
+                    ;
+                // fix the pin scale when zooming.
+                bombMap.svg.selectAll("image")
+                    // Various options I've tried
+                    //.attr("transform", transformStr(translateX+8-(8*scale), translateY+14-(14*scale), scale))
+                    //.attr("transform", transformStr(translateX+(scale), translateY+(scale*scale), scale))
+                    //.attr("transform", transformStr(translateX-(.5*scale), translateY-(scale), scale))
+                    //.attr("transform", transformStr(translateX, translateY, scale))
+                    //.attr("transform", transformStr(0, 0, scale))
+                    .attr("height", 20 * (1 / scale))
+                    .attr("width", 20 * (1 / scale))
+                    ;
+            }
+
+            // on mousewhel
+            bombMap.svg.call(zoom.on("zoom", redraw));
+
+
         };
         console.log(cases);
         namespace.cases = cases;
