@@ -56,14 +56,15 @@ namespace CoronaVirus.Controllers
             // task you'll get a IRestResponse (urlContents).
             Task<IRestResponse> getStringTask = client.ExecuteAsync(request);
 
-            // You can do work here that doesn't rely on the string from GetStringAsync.
+            /*
+             You can do work here that doesn't rely on the string from GetStringAsync.
+             The await operator suspends AccessTheWebAsync.
+              - AccessTheWebAsync can't continue until getStringTask is complete.
+              - Meanwhile, control returns to the caller of AccessTheWebAsync.
+              - Control resumes here when getStringTask is complete. 
+              - The await operator then retrieves the string result from getStringTask.
+            */
 
-
-            // The await operator suspends AccessTheWebAsync.
-            //  - AccessTheWebAsync can't continue until getStringTask is complete.
-            //  - Meanwhile, control returns to the caller of AccessTheWebAsync.
-            //  - Control resumes here when getStringTask is complete. 
-            //  - The await operator then retrieves the string result from getStringTask.
             IRestResponse urlContents = await getStringTask;
             var ConvertedJSON = JsonDocument.Parse(urlContents.Content, default);
             var covid = ConvertedJSON.RootElement.GetProperty("data").GetProperty("covid19Stats");
@@ -92,11 +93,37 @@ namespace CoronaVirus.Controllers
 
         private List<CovidISO> CombineIsoCountry(List<Covid> covids, List<Country> countries)
         {
+            /*
+             * Groupings and sum similar country.
+             * data.GroupBy(d => d.Id)
+                .Select(
+                    g => new
+                    {
+                        Key = g.Key,
+                        Value = g.Sum(s => s.Value),
+                        Name = g.First().Name,
+                        Category = g.First().Category 
+                    });
+             * 
+             */
 
+            var Groupcountry =covids.GroupBy(country => country.country)
+                .Select(
+                    stat => new Covid
+                    {
+                        city = stat.First().city,
+                        province = stat.First().province,
+                        country = stat.First().country,
+                        lastUpdate = stat.First().lastUpdate,
+                        keyId = stat.First().keyId,
+                        confirmed = stat.Sum(s => s.confirmed),
+                        deaths = stat.Sum(s => s.deaths),
+                        recovered = stat.Sum(s => s.recovered)
+                    });
             //var filterCountries = countries.Select(c => c.name).Intersect(covids.Select(s => s.country));
             //var filterContry = countries.Join(covids, c => c.name, s => s.country, (country, covid) => new { country.name, covid.country }, new InitialComparator()).Select(c => c.name);
             var filterCountries = from i in countries
-                       from w in covids
+                       from w in Groupcountry
                        where ((i.name.Contains(w.country) && w.province == "") )
                        select new 
                        {
@@ -106,8 +133,8 @@ namespace CoronaVirus.Controllers
                            i.latitude
                        };
             var filterprov = from i in countries
-                                  from w in covids
-                                  where ((i.name.Contains(w.province) && w.province != ""))
+                                  from w in Groupcountry
+                             where ((i.name.Contains(w.province) && w.province != ""))
                                   select new
                                   {
                                       w,
@@ -116,8 +143,8 @@ namespace CoronaVirus.Controllers
                                       i.latitude
                                   };
             var filterprov2 = from i in countries
-                             from w in covids
-                             where ((i.name.Contains(w.country) && w.province != ""))
+                             from w in Groupcountry
+                              where ((i.name.Contains(w.country) && w.province != ""))
                              select new
                              {
                                  w,

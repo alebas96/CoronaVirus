@@ -7,6 +7,8 @@ namespace CoronaVirus.Models
 {
     public class CovidISO:Covid
     {
+        
+
         public string id { get; set; }
         public string longitude { get; set; }
         public string latitude { get; set; }
@@ -23,5 +25,7 @@ namespace CoronaVirus.Models
             this.longitude = longitude;
             this.latitude = latitude;
         }
+
+        
     }
 }
