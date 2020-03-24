@@ -106,7 +106,19 @@ namespace CoronaVirus.Controllers
                     });
              * 
              */
-
+            var proviceCountry = covids.Where(s=>s.province!="").GroupBy(s=>s.country)
+               .Select(
+                   stat => new Covid
+                   {
+                       city = stat.First().city,
+                       province = "",
+                       country = stat.First().country,
+                       lastUpdate = stat.First().lastUpdate,
+                       keyId = stat.First().keyId,
+                       confirmed = stat.Sum(s => s.confirmed),
+                       deaths = stat.Sum(s => s.deaths),
+                       recovered = stat.Sum(s => s.recovered)
+                   });
             var Groupcountry =covids.GroupBy(country => country.country)
                 .Select(
                     stat => new Covid
@@ -143,8 +155,9 @@ namespace CoronaVirus.Controllers
                                       i.latitude
                                   };
             var filterprov2 = from i in countries
-                             from w in Groupcountry
-                              where ((i.name.Contains(w.country) && w.province != ""))
+                             from w in proviceCountry
+                              where (i.name.Contains(w.country) )
+                             
                              select new
                              {
                                  w,
@@ -152,7 +165,8 @@ namespace CoronaVirus.Controllers
                                  i.longitude,
                                  i.latitude
                              };
-            filterprov2 = filterprov2.GroupBy(c => c.id).Select(g => g.First());
+
+            filterprov2 = filterprov2.GroupBy(c=>c.w.country).Select(c=>c.First());
             List<CovidISO> covISO = new List<CovidISO>();
             foreach (var t in filterCountries)
             {
@@ -162,7 +176,10 @@ namespace CoronaVirus.Controllers
             {
                 covISO.Add(new CovidISO(t.w, t.id, t.longitude, t.latitude));
             }
-            
+            foreach (var t in filterprov2)
+            {
+                covISO.Add(new CovidISO(t.w, t.id, t.longitude, t.latitude));
+            }
             //covids.ForEach(c=> {
 
             //    countries.ForEach(s => {

@@ -5,7 +5,7 @@
 
 
 <div>
-    <h1>Casi di CoronaVirus - Live</h1>
+    <h1>Casi di CoronaVirus - Live <span id="count" class="badge-danger badge-pill"></span></h1>
 </div>
 <div id="world"></div>
         
@@ -123,9 +123,11 @@
             //    fillKey: 'USA',
             //    date: '1954-03-01'
             //};
+            var count = 0;
             for (var state of response) {
                 //console.log(template);
                 var radius;
+                count += state.confirmed;
                 if (state.confirmed > 1000) {
                     radius = state.confirmed / 1000;
                 }
@@ -162,6 +164,7 @@
                         '</div>'].join('');
                 }
             });
+            $("#count").html(count)
         };
         console.log(cases);
         namespace.cases = cases;
