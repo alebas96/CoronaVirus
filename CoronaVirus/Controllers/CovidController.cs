@@ -106,7 +106,7 @@ namespace CoronaVirus.Controllers
                     });
              * 
              */
-            var proviceCountry = covids.Where(s=>s.province!="").GroupBy(s=>s.country)
+            var proviceCountry = covids.Where(s=>s.province!="" || s.country==s.keyId).GroupBy(s=>s.country)
                .Select(
                    stat => new Covid
                    {
@@ -136,7 +136,7 @@ namespace CoronaVirus.Controllers
             //var filterContry = countries.Join(covids, c => c.name, s => s.country, (country, covid) => new { country.name, covid.country }, new InitialComparator()).Select(c => c.name);
             var filterCountries = from i in countries
                        from w in Groupcountry
-                       where ((i.name.Contains(w.country) && w.province == "") )
+                       where ((i.name.Contains(w.country) && w.province == ""))
                        select new 
                        {
                           w,
@@ -146,7 +146,7 @@ namespace CoronaVirus.Controllers
                        };
             var filterprov = from i in countries
                                   from w in Groupcountry
-                             where ((i.name.Contains(w.province) && w.province != ""))
+                             where ((i.name.Contains(w.province) && w.province != "") || w.country == i.iso2Code)
                                   select new
                                   {
                                       w,
@@ -212,9 +212,9 @@ namespace CoronaVirus.Controllers
             //    });
 
             //});
+            
 
-
-            return covISO;
+            return covISO.Distinct().ToList();
         }
 
          async Task<List<Country>> GetISO(string country)
