@@ -213,8 +213,8 @@ namespace CoronaVirus.Controllers
 
             //});
             
-
-            return covISO.Distinct().ToList();
+            
+            return covISO.GroupBy(x => x.id).Select(x => x.First()).ToList();
         }
 
          async Task<List<Country>> GetISO(string country)
